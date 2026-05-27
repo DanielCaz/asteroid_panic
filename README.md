@@ -44,6 +44,16 @@ uv run main.py
 - Collect red jerry cans to refuel your spaceship.
 - The game ends when your fuel runs out or you collide with an asteroid.
 
+## Assets
+
+Runtime images live under `assets/images/`, grouped by gameplay role:
+
+- `assets/images/player/`
+- `assets/images/obstacles/`
+- `assets/images/pickups/`
+
+Editable source art lives under `assets/source/`.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

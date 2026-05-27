@@ -1,7 +1,14 @@
 import random
 import sys
+from pathlib import Path
 
 import pygame
+
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+
+
+def load_image(*path_parts):
+    return pygame.image.load(ASSETS_DIR.joinpath(*path_parts)).convert_alpha()
 
 
 class Game:
@@ -36,8 +43,7 @@ class Spaceship:
     SPEED = 5
 
     def __init__(self):
-        self.image = pygame.Surface((30, 50))
-        self.image.fill((255, 255, 255))
+        self.image = load_image("images", "player", "spaceship.png")
         self.rect = self.image.get_rect()
         self.start_pos = (240, 590)
         self.rect.center = self.start_pos
@@ -71,7 +77,7 @@ class Spaceship:
 
 class FuelSystem:
     MAX_FUEL = 100
-    DRAIN_PER_SECOND = 5
+    DRAIN_PER_SECOND = 3
     REFUEL_AMOUNT = 30
 
     def __init__(self):
@@ -114,11 +120,8 @@ class FuelSystem:
 
 
 class JerryCan:
-    SIZE = (20, 28)
-
     def __init__(self, center_pos, spawn_time, lifetime_ms):
-        self.image = pygame.Surface(self.SIZE)
-        self.image.fill((210, 35, 35))
+        self.image = load_image("images", "pickups", "jerry_can.png")
         self.rect = self.image.get_rect(center=center_pos)
         self.spawn_time = spawn_time
         self.lifetime_ms = lifetime_ms
@@ -134,8 +137,7 @@ class Asteroid:
     SPEED = 3
 
     def __init__(self):
-        self.image = pygame.Surface((40, 40))
-        self.image.fill((128, 128, 128))
+        self.image = load_image("images", "obstacles", "asteroid.png")
         self.rect = self.image.get_rect()
         self.rect.x = random.randint(0, Game.SCREEN_SIZE[0] - self.rect.width)
         self.rect.y = -self.rect.height
