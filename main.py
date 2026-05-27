@@ -1,5 +1,6 @@
 import sys
 import pygame
+import random
 
 
 class Game:
@@ -63,22 +64,55 @@ class Spaceship:
         self.move(dx, dy)
 
 
+class Asteroid:
+    SPEED = 3
+
+    def __init__(self):
+        self.image = pygame.Surface((30, 30))  # Placeholder for asteroid image
+        self.image.fill((128, 128, 128))  # Fill with gray color
+        self.rect = self.image.get_rect()
+        self.rect.x = random.randint(0, Game.SCREEN_SIZE[0] - self.rect.width)
+        self.rect.y = -self.rect.height  # Start above the screen
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+    def update(self):
+        self.rect.y += self.SPEED
+
+    def is_off_screen(self):
+        return self.rect.top > Game.SCREEN_SIZE[1]
+
+
 def main():
     pygame.init()
 
     game = Game()
     spaceship = Spaceship()
+    asteroids = []
+    spawn_delay_range_ms = (250, 850)
+    next_spawn_time = pygame.time.get_ticks() + random.randint(*spawn_delay_range_ms)
 
     while game.running:
         game.handle_events()
+        keys = pygame.key.get_pressed()
+        spaceship.handle_input(keys)
 
-        spaceship.handle_input(pygame.key.get_pressed())
+        now = pygame.time.get_ticks()
+        if now >= next_spawn_time:
+            asteroids.append(Asteroid())
+            next_spawn_time = now + random.randint(*spawn_delay_range_ms)
+
+        for asteroid in asteroids:
+            asteroid.update()
+
+        asteroids = [asteroid for asteroid in asteroids if not asteroid.is_off_screen()]
 
         game.begin_frame()
-        spaceship.draw(game.screen)  # Draw the spaceship
+        spaceship.draw(game.screen)
+        for asteroid in asteroids:
+            asteroid.draw(game.screen)
         game.end_frame()
-
-    game.cleanup()
 
 
 if __name__ == "__main__":
