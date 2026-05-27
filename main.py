@@ -49,10 +49,7 @@ class Spaceship:
         self.rect.x += dx
         self.rect.y += dy
 
-    def handle_input(self, keys, can_move=True):
-        if not can_move:
-            return
-
+    def handle_input(self, keys):
         dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * self.SPEED
         dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * self.SPEED
 
@@ -244,7 +241,7 @@ class AsteroidPanicState:
             self.reset_run(now)
             return
 
-        self.spaceship.handle_input(keys, can_move=True)
+        self.spaceship.handle_input(keys)
         self._spawn_asteroid_if_due(now)
         self._spawn_jerry_can_if_due(now)
 
