@@ -39,7 +39,7 @@ uv run main.py
 
 ## Gameplay
 
-- Use the arrow keys to move your spaceship.
+- Use WASD to move your spaceship.
 - Avoid incoming asteroids that will appear randomly on the screen.
 - Collect red jerry cans to refuel your spaceship.
 - The game ends when your fuel runs out or you collide with an asteroid.

@@ -59,8 +59,8 @@ class Spaceship:
         self.rect.y += dy
 
     def handle_input(self, keys):
-        dx = (keys[pygame.K_RIGHT] - keys[pygame.K_LEFT]) * self.SPEED
-        dy = (keys[pygame.K_DOWN] - keys[pygame.K_UP]) * self.SPEED
+        dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.SPEED
+        dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.SPEED
 
         if self.rect.left + dx < 0:
             dx = -self.rect.left
