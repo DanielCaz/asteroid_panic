@@ -38,7 +38,8 @@ class Spaceship:
         self.image = pygame.Surface((30, 50))  # Placeholder for spaceship image
         self.image.fill((255, 255, 255))  # Fill with white color
         self.rect = self.image.get_rect()
-        self.rect.center = (240, 590)  # Start in the center-bottom of the screen
+        self.start_pos = (240, 590)
+        self.rect.center = self.start_pos  # Start in the center-bottom of the screen
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -62,6 +63,9 @@ class Spaceship:
             dy = Game.SCREEN_SIZE[1] - self.rect.bottom
 
         self.move(dx, dy)
+
+    def reset(self):
+        self.rect.center = self.start_pos
 
 
 class Asteroid:
@@ -105,6 +109,11 @@ def main():
 
         for asteroid in asteroids:
             asteroid.update()
+
+        if any(spaceship.rect.colliderect(asteroid.rect) for asteroid in asteroids):
+            spaceship.reset()
+            asteroids.clear()
+            next_spawn_time = now + random.randint(*spawn_delay_range_ms)
 
         asteroids = [asteroid for asteroid in asteroids if not asteroid.is_off_screen()]
 
