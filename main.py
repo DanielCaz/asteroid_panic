@@ -22,9 +22,12 @@ class Game:
         self.running = True
 
     def handle_events(self):
+        events = []
         for event in pygame.event.get():
+            events.append(event)
             if event.type == pygame.QUIT:
                 self.running = False
+        return events
 
     def begin_frame(self):
         self.screen.fill(self.BACKGROUND_COLOR)
@@ -170,6 +173,11 @@ class AsteroidPanicState:
         self.fuel_system = FuelSystem()
         self.asteroids = []
         self.jerry_can = None
+        self.game_over = False
+        self.game_over_reason = ""
+        self.game_over_title_font = pygame.font.SysFont("arial", 48, bold=True)
+        self.game_over_text_font = pygame.font.SysFont("arial", 26)
+        self.game_over_hint_font = pygame.font.SysFont("arial", 22)
 
         self.next_asteroid_spawn_time = self._schedule_next(
             now, self.ASTEROID_SPAWN_DELAY_RANGE_MS
@@ -187,12 +195,18 @@ class AsteroidPanicState:
         self.fuel_system.reset()
         self.asteroids.clear()
         self.jerry_can = None
+        self.game_over = False
+        self.game_over_reason = ""
         self.next_asteroid_spawn_time = self._schedule_next(
             now, self.ASTEROID_SPAWN_DELAY_RANGE_MS
         )
         self.next_jerry_can_spawn_time = self._schedule_next(
             now, self.JERRY_CAN_SPAWN_DELAY_RANGE_MS
         )
+
+    def trigger_game_over(self, reason):
+        self.game_over = True
+        self.game_over_reason = reason
 
     def _spawn_asteroid_if_due(self, now):
         if now < self.next_asteroid_spawn_time:
@@ -238,9 +252,12 @@ class AsteroidPanicState:
         )
 
     def update(self, keys, dt, now):
+        if self.game_over:
+            return
+
         self.fuel_system.update(dt)
         if not self.fuel_system.has_fuel():
-            self.reset_run(now)
+            self.trigger_game_over("Out of fuel")
             return
 
         self.spaceship.handle_input(keys)
@@ -253,7 +270,7 @@ class AsteroidPanicState:
         self._resolve_jerry_can_interaction(now)
 
         if self._hit_asteroid():
-            self.reset_run(now)
+            self.trigger_game_over("Asteroid collision")
             return
 
         self.asteroids = [
@@ -271,6 +288,27 @@ class AsteroidPanicState:
 
         self.fuel_system.draw(screen)
 
+        if self.game_over:
+            overlay = pygame.Surface(Game.SCREEN_SIZE, pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            screen.blit(overlay, (0, 0))
+
+            title = self.game_over_title_font.render("GAME OVER", True, (250, 70, 70))
+            title_rect = title.get_rect(center=(240, 270))
+            screen.blit(title, title_rect)
+
+            reason = self.game_over_text_font.render(
+                self.game_over_reason, True, (240, 240, 240)
+            )
+            reason_rect = reason.get_rect(center=(240, 325))
+            screen.blit(reason, reason_rect)
+
+            hint = self.game_over_hint_font.render(
+                "Press R to play again or ESC to quit", True, (230, 230, 230)
+            )
+            hint_rect = hint.get_rect(center=(240, 370))
+            screen.blit(hint, hint_rect)
+
 
 def main():
     pygame.init()
@@ -280,11 +318,19 @@ def main():
     dt = 1 / Game.FPS
 
     while game.running:
-        game.handle_events()
+        events = game.handle_events()
         keys = pygame.key.get_pressed()
         now = pygame.time.get_ticks()
 
-        state.update(keys, dt, now)
+        if state.game_over:
+            for event in events:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        state.reset_run(now)
+                    elif event.key == pygame.K_ESCAPE:
+                        game.running = False
+        else:
+            state.update(keys, dt, now)
 
         game.begin_frame()
         state.draw(game.screen)
