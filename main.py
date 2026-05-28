@@ -137,19 +137,20 @@ class JerryCan:
 
 
 class Asteroid:
-    SPEED = 3
+    SPEED_RANGE = (2, 6)
 
     def __init__(self):
         self.image = load_image("images", "obstacles", "asteroid.png")
         self.rect = self.image.get_rect()
         self.rect.x = random.randint(0, Game.SCREEN_SIZE[0] - self.rect.width)
         self.rect.y = -self.rect.height
+        self.speed = random.randint(*self.SPEED_RANGE)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
     def update(self):
-        self.rect.y += self.SPEED
+        self.rect.y += self.speed
 
     def is_off_screen(self):
         return self.rect.top > Game.SCREEN_SIZE[1]
