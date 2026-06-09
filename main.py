@@ -1,14 +1,45 @@
 import random
 import sys
+import time
 from pathlib import Path
 
 import pygame
 
+
+class PRNG:
+    """Linear Congruential Generator for asteroid spawn positions."""
+
+    def __init__(self, seed=None):
+        self._state = seed if seed is not None else int(time.time() * 1000) & 0xFFFFFFFF
+        # LCG parameters (Numerical Recipes)
+        self._a = 1664525
+        self._c = 1013904223
+        self._m = 2**32
+
+    def next(self):
+        self._state = (self._a * self._state + self._c) % self._m
+        return self._state
+
+    def randint(self, low, high):
+        return low + self.next() % (high - low + 1)
+
+    def uniform(self, low, high):
+        return low + (self.next() / self._m) * (high - low)
+
+
+_asteroid_prng = PRNG()
+
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+
+_image_cache = {}
 
 
 def load_image(*path_parts):
-    return pygame.image.load(ASSETS_DIR.joinpath(*path_parts)).convert_alpha()
+    if path_parts not in _image_cache:
+        _image_cache[path_parts] = pygame.image.load(
+            ASSETS_DIR.joinpath(*path_parts)
+        ).convert_alpha()
+    return _image_cache[path_parts]
 
 
 class Game:
@@ -43,39 +74,36 @@ class Game:
 
 
 class Spaceship:
-    SPEED = 5
+    SPEED = 300  # px/seg
 
     def __init__(self):
         self.image = load_image("images", "player", "spaceship.png")
         self.rect = self.image.get_rect()
         self.start_pos = (240, 590)
         self.rect.center = self.start_pos
+        self.x = float(self.rect.x)
+        self.y = float(self.rect.y)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
-    def move(self, dx, dy):
-        self.rect.x += dx
-        self.rect.y += dy
+    def handle_input(self, keys, dt):
+        dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.SPEED * dt
+        dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.SPEED * dt
 
-    def handle_input(self, keys):
-        dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.SPEED
-        dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.SPEED
+        self.x += dx
+        self.y += dy
 
-        if self.rect.left + dx < 0:
-            dx = -self.rect.left
-        elif self.rect.right + dx > Game.SCREEN_SIZE[0]:
-            dx = Game.SCREEN_SIZE[0] - self.rect.right
+        self.x = max(0.0, min(self.x, Game.SCREEN_SIZE[0] - self.rect.width))
+        self.y = max(0.0, min(self.y, Game.SCREEN_SIZE[1] - self.rect.height))
 
-        if self.rect.top + dy < 0:
-            dy = -self.rect.top
-        elif self.rect.bottom + dy > Game.SCREEN_SIZE[1]:
-            dy = Game.SCREEN_SIZE[1] - self.rect.bottom
-
-        self.move(dx, dy)
+        self.rect.x = round(self.x)
+        self.rect.y = round(self.y)
 
     def reset(self):
         self.rect.center = self.start_pos
+        self.x = float(self.rect.x)
+        self.y = float(self.rect.y)
 
 
 class FuelSystem:
@@ -137,20 +165,22 @@ class JerryCan:
 
 
 class Asteroid:
-    SPEED_RANGE = (2, 6)
+    SPEED_RANGE = (120, 360)  # px/seg
 
     def __init__(self):
         self.image = load_image("images", "obstacles", "asteroid.png")
         self.rect = self.image.get_rect()
-        self.rect.x = random.randint(0, Game.SCREEN_SIZE[0] - self.rect.width)
+        self.rect.x = _asteroid_prng.randint(0, Game.SCREEN_SIZE[0] - self.rect.width)
         self.rect.y = -self.rect.height
-        self.speed = random.randint(*self.SPEED_RANGE)
+        self.y = float(self.rect.y)
+        self.speed = _asteroid_prng.uniform(*self.SPEED_RANGE)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
-    def update(self):
-        self.rect.y += self.speed
+    def update(self, dt):
+        self.y += self.speed * dt
+        self.rect.y = round(self.y)
 
     def is_off_screen(self):
         return self.rect.top > Game.SCREEN_SIZE[1]
@@ -261,12 +291,12 @@ class AsteroidPanicState:
             self.trigger_game_over("Out of fuel")
             return
 
-        self.spaceship.handle_input(keys)
+        self.spaceship.handle_input(keys, dt)
         self._spawn_asteroid_if_due(now)
         self._spawn_jerry_can_if_due(now)
 
         for asteroid in self.asteroids:
-            asteroid.update()
+            asteroid.update(dt)
 
         self._resolve_jerry_can_interaction(now)
 
@@ -336,6 +366,8 @@ def main():
         game.begin_frame()
         state.draw(game.screen)
         dt = game.end_frame()
+
+    game.cleanup()
 
 
 if __name__ == "__main__":
